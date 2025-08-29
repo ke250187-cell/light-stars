@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyMate - AI-Powered PDF Q&A System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .chat-bubble-ai {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f8fafc;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #e0e7ff;
+        }
+        
+        .typing-indicator {
+            display: none;
+        }
+        
+        .typing-indicator.show {
+            display: flex;
+        }
+        
+        .dot {
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        .pdf-preview {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                        <span class="text-2xl">🎓</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">StudyMate</h1>
+                        <p class="text-sm opacity-90">AI-Powered PDF Q&A System</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm opacity-90">Documents Processed</p>
+                        <p class="text-xl font-semibold" id="docCount">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8 max-w-6xl">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- PDF Upload Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📄</span>
+                        Upload PDF Documents
+                    </h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center mb-4" id="uploadArea">
+                        <div class="mb-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 mb-2">Drag & drop your PDF files here</p>
+                        <p class="text-sm text-gray-500 mb-4">or click to browse</p>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf" multiple>
+                        <button onclick="document.getElementById('fileInput').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            Choose Files
+                        </button>
+                    </div>
+                    
+                    <!-- Uploaded Files List -->
+                    <div id="filesList" class="space-y-2"></div>
+                    
+                    <!-- PDF Preview -->
+                    <div id="pdfPreview" class="mt-4 hidden">
+                        <h3 class="font-medium text-gray-700 mb-2">Document Preview</h3>
+                        <div class="bg-gray-100 rounded-lg p-4 pdf-preview">
+                            <div id="previewContent" class="text-sm text-gray-600"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Study Statistics -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Study Stats</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Questions Asked</span>
+                            <span class="font-semibold" id="questionsCount">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Study Sessions</span>
+                            <span class="font-semibold" id="sessionsCount">1</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Pages Analyzed</span>
+                            <span class="font-semibold" id="pagesCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Interface -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
+                    <!-- Chat Header -->
+                    <div class="border-b border-gray-200 p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-bold">AI</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">StudyMate Assistant</h3>
+                                    <p class="text-sm text-gray-500" id="statusText">Ready to help with your studies</p>
+                                </div>
+                            </div>
+                            <button onclick="clearChat()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Messages -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chatMessages">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white text-sm font-bold">AI</span>
+                            </div>
+                            <div class="chat-bubble-ai text-white p-3 rounded-lg rounded-tl-none max-w-md">
+                                <p>Hello! I'm StudyMate, your AI study assistant. Upload your PDF documents and I'll help you understand the content by answering your questions. What would you like to study today?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Typing Indicator -->
+                    <div class="typing-indicator px-4 pb-2" id="typingIndicator">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white text-sm font-bold">AI</span>
+                            </div>
+                            <div class="bg-gray-200 p-3 rounded-lg rounded-tl-none">
+                                <div class="flex space-x-1">
+                                    <div class="w-2 h-2 bg-gray-500 rounded-full dot"></div>
+                                    <div class="w-2 h-2 bg-gray-500 rounded-full dot"></div>
+                                    <div class="w-2 h-2 bg-gray-500 rounded-full dot"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="border-t border-gray-200 p-4">
+                        <div class="flex space-x-3">
+                            <input 
+                                type="text" 
+                                id="messageInput" 
+                                placeholder="Ask me anything about your documents..."
+                                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                onkeypress="handleKeyPress(event)"
+                            >
+                            <button 
+                                onclick="sendMessage()" 
+                                id="sendButton"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                            >
+                                <span>Send</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Questions -->
+                        <div class="mt-3 flex flex-wrap gap-2" id="quickQuestions">
+                            <button onclick="askQuickQuestion('Summarize the main points')" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors">
+                                📝 Summarize main points
+                            </button>
+                            <button onclick="askQuickQuestion('What are the key concepts?')" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors">
+                                🔑 Key concepts
+                            </button>
+                            <button onclick="askQuickQuestion('Create study questions')" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors">
+                                ❓ Study questions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFiles = [];
+        let questionCount = 0;
+        let currentDocuments = [];
+        
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const filesList = document.getElementById('filesList');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'application/pdf');
+            processFiles(files);
+        }
+        
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            processFiles(files);
+        }
+        
+        function processFiles(files) {
+            files.forEach(file => {
+                if (file.type === 'application/pdf') {
+                    uploadedFiles.push(file);
+                    addFileToList(file);
+                    simulateDocumentProcessing(file);
+                }
+            });
+            updateDocumentCount();
+        }
+        
+        function addFileToList(file) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
+            fileItem.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <span class="text-red-500">📄</span>
+                    <div>
+                        <p class="font-medium text-gray-800">${file.name}</p>
+                        <p class="text-sm text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-green-500 text-sm">✓ Processed</span>
+                    <button onclick="removeFile('${file.name}')" class="text-red-500 hover:text-red-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            filesList.appendChild(fileItem);
+        }
+        
+        function removeFile(fileName) {
+            uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+            updateFilesList();
+            updateDocumentCount();
+        }
+        
+        function updateFilesList() {
+            filesList.innerHTML = '';
+            uploadedFiles.forEach(file => addFileToList(file));
+        }
+        
+        function updateDocumentCount() {
+            document.getElementById('docCount').textContent = uploadedFiles.length;
+            document.getElementById('pagesCount').textContent = uploadedFiles.length * Math.floor(Math.random() * 20 + 5);
+            
+            if (uploadedFiles.length > 0) {
+                document.getElementById('statusText').textContent = `Analyzing ${uploadedFiles.length} document(s)`;
+                showDocumentPreview();
+            } else {
+                document.getElementById('statusText').textContent = 'Ready to help with your studies';
+                hideDocumentPreview();
+            }
+        }
+        
+        function simulateDocumentProcessing(file) {
+            // Simulate document processing
+            setTimeout(() => {
+                const preview = document.getElementById('previewContent');
+                preview.innerHTML = `
+                    <p><strong>Document:</strong> ${file.name}</p>
+                    <p><strong>Status:</strong> Successfully processed and indexed</p>
+                    <p><strong>Content Preview:</strong> This document contains educational material that has been analyzed and is ready for Q&A. You can now ask questions about the content, request summaries, or generate study materials.</p>
+                `;
+            }, 1000);
+        }
+        
+        function showDocumentPreview() {
+            document.getElementById('pdfPreview').classList.remove('hidden');
+        }
+        
+        function hideDocumentPreview() {
+            document.getElementById('pdfPreview').classList.add('hidden');
+        }
+        
+        // Chat functionality
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (uploadedFiles.length === 0) {
+                addMessage('user', message);
+                setTimeout(() => {
+                    addMessage('ai', "I'd love to help you study! Please upload some PDF documents first so I can analyze them and answer your questions about the content.");
+                }, 1000);
+                input.value = '';
+                return;
+            }
+            
+            addMessage('user', message);
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Simulate AI response
+            setTimeout(() => {
+                hideTypingIndicator();
+                generateAIResponse(message);
+                questionCount++;
+                document.getElementById('questionsCount').textContent = questionCount;
+            }, 2000 + Math.random() * 2000);
+        }
+        
+        function askQuickQuestion(question) {
+            document.getElementById('messageInput').value = question;
+            sendMessage();
+        }
+        
+        function addMessage(sender, message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                messageDiv.className = 'flex items-start space-x-3 justify-end';
+                messageDiv.innerHTML = `
+                    <div class="chat-bubble-user text-white p-3 rounded-lg rounded-tr-none max-w-md">
+                        <p>${message}</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-sm font-bold">You</span>
+                    </div>
+                `;
+            } else {
+                messageDiv.className = 'flex items-start space-x-3';
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-sm font-bold">AI</span>
+                    </div>
+                    <div class="chat-bubble-ai text-white p-3 rounded-lg rounded-tl-none max-w-md">
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').classList.add('show');
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').classList.remove('show');
+        }
+        
+        function generateAIResponse(question) {
+            const responses = {
+                'summarize': [
+                    "Based on your uploaded documents, here are the main points: The material covers fundamental concepts in the subject area, with detailed explanations and practical examples. Key themes include theoretical foundations, practical applications, and current research developments.",
+                    "I've analyzed your documents and identified these core concepts: The content focuses on essential principles, methodologies, and real-world applications. The material is structured to build understanding progressively from basic to advanced topics."
+                ],
+                'key concepts': [
+                    "The key concepts from your documents include: 1) Fundamental principles and theories, 2) Practical applications and case studies, 3) Current trends and developments, 4) Critical analysis frameworks, and 5) Future implications and considerations.",
+                    "From your uploaded materials, the essential concepts are: Core theoretical foundations, practical implementation strategies, analytical methodologies, and emerging trends in the field."
+                ],
+                'study questions': [
+                    "Here are some study questions based on your documents: 1) What are the main principles discussed? 2) How do these concepts apply in practice? 3) What are the key differences between the various approaches? 4) What evidence supports the main arguments? 5) How might these ideas evolve in the future?",
+                    "I've generated these study questions from your materials: 1) Explain the fundamental concepts, 2) Compare and contrast different methodologies, 3) Analyze the practical implications, 4) Evaluate the strengths and limitations, 5) Predict future developments."
+                ],
+                'default': [
+                    "That's an excellent question! Based on the content in your uploaded documents, I can provide detailed insights. The material suggests that this topic is multifaceted and requires careful consideration of various factors and perspectives.",
+                    "Great question! From analyzing your documents, I can see this relates to several key themes discussed in the material. The content provides comprehensive coverage of this topic with both theoretical and practical perspectives.",
+                    "Interesting question! Your documents contain relevant information about this topic. The material approaches this from multiple angles, providing both foundational knowledge and advanced insights.",
+                    "That's a thoughtful question! Based on your uploaded PDFs, this topic is well-covered with detailed explanations, examples, and analysis. The content offers both breadth and depth on this subject."
+                ]
+            };
+            
+            let responseArray = responses.default;
+            const lowerQuestion = question.toLowerCase();
+            
+            if (lowerQuestion.includes('summarize') || lowerQuestion.includes('summary') || lowerQuestion.includes('main points')) {
+                responseArray = responses.summarize;
+            } else if (lowerQuestion.includes('key concepts') || lowerQuestion.includes('important') || lowerQuestion.includes('concepts')) {
+                responseArray = responses['key concepts'];
+            } else if (lowerQuestion.includes('study questions') || lowerQuestion.includes('questions') || lowerQuestion.includes('quiz')) {
+                responseArray = responses['study questions'];
+            }
+            
+            const response = responseArray[Math.floor(Math.random() * responseArray.length)];
+            addMessage('ai', response);
+        }
+        
+        function clearChat() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-sm font-bold">AI</span>
+                    </div>
+                    <div class="chat-bubble-ai text-white p-3 rounded-lg rounded-tl-none max-w-md">
+                        <p>Hello! I'm StudyMate, your AI study assistant. Upload your PDF documents and I'll help you understand the content by answering your questions. What would you like to study today?</p>
+                    </div>
+                </div>
+            `;
+            questionCount = 0;
+            document.getElementById('questionsCount').textContent = questionCount;
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'976a4f4eb74e31d6',t:'MTc1NjQ1MjI3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
